@@ -9,6 +9,7 @@ import { Meter } from '../models/Meter';
 
 dotenv.config();
 
+// Função para upload de leitura
 export const uploadLeitura = async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -63,6 +64,7 @@ export const uploadLeitura = async (req: Request, res: Response) => {
     }
 };
 
+// Função para confirmar a leitura
 export const confirmLeitura = async (req: Request, res: Response) => {
     const { measure_uuid, confirm } = req.body;
 
@@ -86,3 +88,35 @@ export const confirmLeitura = async (req: Request, res: Response) => {
     }
 };
 
+// Função para listar as leituras de um cliente
+export const listLeituras = async (req: Request, res: Response) => {
+    const { customer_code } = req.params;
+    const { measure_type } = req.query;
+
+    try {
+        // Filtra as leituras pelo código do cliente e opcionalmente pelo tipo de medida
+        const leituras = await Leitura.findAll({
+            where: {
+                user_id: customer_code,
+                ...(measure_type && { type: measure_type })  // Filtra por tipo de medida se fornecido
+            }
+        });
+
+        if (leituras.length === 0) {
+            return res.status(404).json({
+                error_code: 'MEASURES_NOT_FOUND',
+                error_description: 'Nenhuma leitura encontrada para o cliente especificado.'
+            });
+        }
+
+        return res.status(200).json({
+            customer_code,
+            measures: leituras
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error_code: 'INTERNAL_ERROR',
+            error_description: 'Erro ao listar as leituras.'
+        });
+    }
+};
